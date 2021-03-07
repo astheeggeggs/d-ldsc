@@ -77,9 +77,8 @@ conda env update --file environment.yml
 
 Before contacting us, please try the following:
 
-1. The original `ldsc` github has an excellent [wiki](https://github.com/bulik/ldsc/wiki) which contains tutorials on [estimating LD Score](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial), [heritability]. Much of these tutorials are applicable to usage of `d-ldsc`.
-2. Common issues are described in the [FAQ](https://github.com/bulik/ldsc/wiki/FAQ)
-3. The method to estimate additive heritability is described in the citation below. We have preprint incoming detailing estimation of dominance heritability in the UK-biobank, which also includes the method to estimate dominance heritability. A working version of the methods portion of supplement to our preprint is available in this repository and gives a detailed derivation of the approach. Find it at https://github.com/astheeggeggs/d-ldsc/methods/methods.pdf.
+1. The original `ldsc` github has an excellent [wiki](https://github.com/bulik/ldsc/wiki) which contains tutorials on [estimating LD Score](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial), [heritability]. Much of these tutorials are applicable to usage of `d-ldsc`, you can also consult the orginal [FAQ](https://github.com/bulik/ldsc/wiki/FAQ).
+2. The method to estimate additive heritability is described in the citation below. We have preprint incoming detailing estimation of dominance heritability in the UK-biobank, which also includes the method to estimate dominance heritability. A working version of the methods portion of supplement to our preprint is available in this repository and gives a detailed derivation of the approach. Find it at https://github.com/astheeggeggs/d-ldsc/methods/methods.pdf.
 
 If that doesn't work, you can get in touch with us by submitting an issue to this repository.
 

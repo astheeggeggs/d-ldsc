@@ -84,6 +84,17 @@ def get_ldscores(args, log):
         error_msg += '--yes-really flag (warning: it will use a lot of time / memory)'
         raise ValueError(error_msg)
 
+    scale_suffix = ''
+    if args.pq_exp is not None:
+        log.log('Computing LD with pq ^ {S}.'.format(S=args.pq_exp))
+        msg = 'Note that LD Scores with pq raised to a nonzero power are'
+        msg += 'not directly comparable to normal LD Scores.'
+        log.log(msg)
+        scale_suffix = '_S{S}'.format(S=args.pq_exp)
+        pq = np.matrix(geno_array.maf*(1-geno_array.maf)).reshape((geno_array.m, 1))
+        pq = np.power(pq, args.pq_exp)
+        annot_matrix = pq # Note that in the dominance case, we multiply by (pq)^2.
+
     df = pd.DataFrame.from_records(np.c_[geno_array.df])
     df.columns = geno_array.colnames
     out_fname = args.out + '.ldscore'
@@ -92,14 +103,16 @@ def get_ldscores(args, log):
 
     if args.additive:
         log.log('Additive LD scores...')
-        lN_A = geno_array.ldScoreVarBlocks_add(block_left, args.chunk_size)
-        df['L2_A'] = lN_A.reshape(geno_array.m,1)
+        # Note, in the below, annot_matrix is None, unless we specify pq_exp.
+        lN_A = geno_array.ldScoreVarBlocks_add(block_left, args.chunk_size, annot=annot_matrix)
+        df[f'L2_A{scale_suffix}'] = lN_A.reshape(geno_array.m,1)
 
     if args.dominance:
         log.log('Dominance LD scores...')
         geno_array._currentSNP = 0
-        lN_D = geno_array.ldScoreVarBlocks_dom(block_left, args.chunk_size)
-        df['L2_D'] = lN_D.reshape(geno_array.m,1)
+        # Note, in the below, annot_matrix is None, unless we specify pq_exp.
+        lN_D = geno_array.ldScoreVarBlocks_dom(block_left, args.chunk_size, annot=annot_matrix)
+        df[f'L2_D{scale_suffix}'] = lN_D.reshape(geno_array.m,1)
 
     log.log('Writing LD Scores for {N} SNPs to {f}'.format(f=out_fname, N=len(df)))
     df.drop(['CM','MAF'], axis=1).to_csv(out_fname, sep='\t', header=True, index=False,
@@ -176,6 +189,11 @@ parser.add_argument('--chunk-size', default=50, type=int,
     help='Chunk size for LD Score calculation. Use the default.')
 parser.add_argument('--yes-really', default=False, action='store_true',
     help='Yes, I really want to compute whole-chromosome LD Score.')
+parser.add_argument('--pq-exp', default=None, type=float,
+    help='Setting this flag causes LDSC to compute LD Scores with the given scale factor, '
+    'in the additive case this results in \ell^A_j := \sum_k (p_k(1-p_k))^a r_A^2_{jk}'
+    'in the dominance case this results in \ell^D_j := \sum k (p_k(1-p_k))^{2a} r_D^2_{jk}, where '
+    'p_k denotes the MAF of SNP j and a is the argument to --pq-exp.')
 
 if __name__ == '__main__':
 

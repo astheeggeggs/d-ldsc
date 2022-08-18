@@ -3,6 +3,7 @@ import numpy as np
 import bitarray as ba
 # import matplotlib.pyplot as plt
 import scipy.stats as ss
+import copy
 
 def getBlockLefts(coords, max_dist):
     # Converts coordinates + max block length to the a list of coordinates of the leftmost
@@ -89,18 +90,18 @@ class __GenotypeArrayInMemory__(object):
 
     def __l2_unbiased__(self, x, n):
         sq = np.square(x)
-        return sq - 1/n
+        return sq - 1 / n
 
-    def ldScoreVarBlocks_add(self, block_left, c):
+    def ldScoreVarBlocks_add(self, block_left, c, annot=None):
         l2 = lambda x: self.__l2_unbiased__(x, self.n)
-        return self.__corSumVarBlocks__(block_left, c, l2, self.nextSNPs_add)
+        return self.__corSumVarBlocks__(block_left, c, l2, self.nextSNPs_add, annot)
 
     def ldScoreVarBlocks_dom(self, block_left, c):
-        l2 = lambda x: self.__l2_unbiased__(x, self.n)
-        return self.__corSumVarBlocks__(block_left, c, l2, self.nextSNPs_dom)
+        l2 = lambda x: self.__l2_unbiased__(x, self.n, annot=None)
+        return self.__corSumVarBlocks__(block_left, c, l2, self.nextSNPs_dom, annot**2)
 
     # general methods for calculating sums of Pearson correlation coefficients
-    def __corSumVarBlocks__(self, block_left, c, l2, snp_getter):
+    def __corSumVarBlocks__(self, block_left, c, l2, snp_getter, annot=None):
         # Parameters
         # ----------
         # block_left : np.ndarray with shape (M, )
@@ -127,6 +128,13 @@ class __GenotypeArrayInMemory__(object):
         block_sizes = np.array(np.arange(m) - block_left)
         block_sizes = (np.ceil(block_sizes / c) * c).astype(int)
 
+        if annot is None:
+            annot = np.ones((m, 1))
+        else:
+            annot_m = annot.shape[0]
+            if annot_m != self.m:
+                raise ValueError('Incorrect number of SNPs in annot')
+
         cor_sum = np.zeros((m, 1))
         # b = index of first SNP for which SNP 0 is not included in LD Score
         b = np.nonzero(block_left > 0)
@@ -149,7 +157,8 @@ class __GenotypeArrayInMemory__(object):
             B = A[:, l_B:l_B+c]
             np.dot(A.T, B / n, out=rfuncAB)
             rfuncAB = l2(rfuncAB)
-            cor_sum[l_A:l_A+b, :] += np.sum(rfuncAB, axis=1).reshape(b,1)
+            # cor_sum[l_A:l_A+b, :] += np.sum(rfuncAB, axis=1).reshape(b,1)
+            cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
 
         # Chunk to right of block
         b0 = int(b)
@@ -185,11 +194,14 @@ class __GenotypeArrayInMemory__(object):
 
             np.dot(A.T, B / n, out=rfuncAB)
             rfuncAB = l2(rfuncAB)
-            cor_sum[l_A:l_A+b, :] += np.sum(rfuncAB, axis=1).reshape(b,1)
-            cor_sum[l_B:l_B+c, :] += np.sum(rfuncAB, axis=0).reshape(c,1)
+            # cor_sum[l_A:l_A+b, :] += np.sum(rfuncAB, axis=1).reshape(b,1)
+            cor_sum[l_A:l_A+b, :] += np.sum(rfuncAB, annot[l_B:l_B+c, :])
+            # cor_sum[l_B:l_B+c, :] += np.sum(rfuncAB, axis=0).reshape(c,1)
+            cor_sum[l_B:l_B+c, :] += np.sum(annot[l_A:l_A+b, :].T, rfuncAB).T
             np.dot(B.T, B / n, out=rfuncBB)
             rfuncBB = l2(rfuncBB)
-            cor_sum[l_B:l_B+c, :] += np.sum(rfuncBB, axis=0).reshape(c,1)
+            # cor_sum[l_B:l_B+c, :] += np.sum(rfuncBB, axis=0).reshape(c,1)
+            cor_sum[l_B:l_B+c, :] += np.dot(rfuncBB, annot[l_B:l_B+c, :])
 
         print(cor_sum)
         return cor_sum
@@ -420,16 +432,14 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
         slice = self.geno[2*c*nru:2*(c+b)*nru]
 
         X_A = np.array(slice.decode(self._bedcode), dtype="float64").reshape((b, nru)).T
-        # DEV - Need to be very careful here...
-        # X_A = (self.freq > 0.5)*(-X_A+2) + (self.freq <= 0.5)*X_A
-        # DEV: SUPER IMPORTANT WE FIGURE OUT WHAT'S GOING ON HERE.
-        X_D = np.copy(X_A)
+        # X_D = np.copy(X_A)
+        X_D = copy.deepcopy(X_A)
 
         X_A = X_A[0:n, :]
         X_D = X_D[0:n, :]
 
-        Y_A = np.zeros(X_A.shape)
-        Y_D = np.copy(Y_A)
+        X_standard_A = np.zeros(X_A.shape)
+        X_standard_D = np.zeros(X_D.shape)
 
         for j in range(0, b):
 
@@ -445,7 +455,7 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
             if denom_A == 0:
                 denom_A = 1
 
-            Y_A[:, j] = (newsnp_A - avg_A) / denom_A
+            X_standard_A[:, j] = (newsnp_A - avg_A) / denom_A
 
             # Now the dominance effects.
             p = avg_A / 2
@@ -464,9 +474,9 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
                 denom_D = 1
 
             # and renormalise
-            Y_D[:,j] = (newsnp_D - avg_D) / denom_D
+            X_standard_D[:,j] = (newsnp_D - avg_D) / denom_D
 
         self._currentSNP += b
 
-        return Y_A, Y_D
+        return X_standard_A, X_standard_D
 

@@ -173,9 +173,9 @@ class __GenotypeArrayInMemory__(object):
             # Update the block
             old_b = b
 
-            if (l_B / 10000) > print_update:
-                print(f'site: {l_B}')
-                print_update += 1
+            # if (l_B / 10000) > print_update:
+            #     print(f'site: {l_B}')
+            #     print_update += 1
 
             b = block_sizes[l_B]
             if l_B > b0 and b > 0:

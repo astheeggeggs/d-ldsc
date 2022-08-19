@@ -87,7 +87,7 @@ def get_ldscores(args, log):
     scale_suffix = ''
     if args.pq_exp is not None:
         log.log('Computing LD with pq^{S}.'.format(S=args.pq_exp))
-        msg = 'Note that LD Scores with pq raised to a nonzero power are'
+        msg = 'Note that LD Scores with pq raised to a nonzero power are '
         msg += 'not directly comparable to normal LD Scores.'
         log.log(msg)
         scale_suffix = '_S{S}'.format(S=args.pq_exp)
@@ -107,14 +107,14 @@ def get_ldscores(args, log):
         log.log('Additive LD scores...')
         # Note, in the below, annot_matrix is None, unless we specify pq_exp.
         lN_A = geno_array.ldScoreVarBlocks_add(block_left, args.chunk_size, annot=annot_matrix)
-        df[f'L2_A{scale_suffix}'] = lN_A.reshape(geno_array.m,1)
+        df['L2_A{scale_suffix}'.format(scale_suffix=scale_suffix)] = lN_A.reshape(geno_array.m,1)
 
     if args.dominance:
         log.log('Dominance LD scores...')
         geno_array._currentSNP = 0
         # Note, in the below, annot_matrix is None, unless we specify pq_exp.
         lN_D = geno_array.ldScoreVarBlocks_dom(block_left, args.chunk_size, annot=annot_matrix)
-        df[f'L2_D{scale_suffix}'] = lN_D.reshape(geno_array.m,1)
+        df['L2_D{scale_suffix}'.format(scale_suffix=scale_suffix)] = lN_D.reshape(geno_array.m,1)
 
     log.log('Writing LD Scores for {N} SNPs to {f}'.format(f=out_fname, N=len(df)))
     df.drop(['CM','MAF'], axis=1).to_csv(out_fname, sep='\t', header=True, index=False,
@@ -132,13 +132,15 @@ def get_ldscores(args, log):
 
     # print .M
     fout_M = open(args.out +'.M','w')
-    print('\t'.join(map(str,M)), file=fout_M)
-    # fout_M.close()
+    # print('\t'.join(map(str,M)), file=fout_M)
+    print >>fout_M, '\t'.join(map(str,M))
+    fout_M.close()
 
     # print .M_5_50
     fout_M_5_50 = open(args.out +'.M_5_50','w')
-    print('\t'.join(map(str,M_5_50)), file=fout_M_5_50)
-    # fout_M_5_50.close()
+    # print('\t'.join(map(str,M_5_50)), file=fout_M_5_50)
+    print >>fout_M_5_50, '\t'.join(map(str,M_5_50))
+    fout_M_5_50.close()
 
     # Print LD Score summary.
     pd.set_option('display.max_rows', 200)

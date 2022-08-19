@@ -86,7 +86,7 @@ def get_ldscores(args, log):
 
     scale_suffix = ''
     if args.pq_exp is not None:
-        log.log('Computing LD with pq ^ {S}.'.format(S=args.pq_exp))
+        log.log('Computing LD with pq^{S}.'.format(S=args.pq_exp))
         msg = 'Note that LD Scores with pq raised to a nonzero power are'
         msg += 'not directly comparable to normal LD Scores.'
         log.log(msg)
@@ -94,6 +94,8 @@ def get_ldscores(args, log):
         pq = np.matrix(geno_array.maf*(1-geno_array.maf)).reshape((geno_array.m, 1))
         pq = np.power(pq, args.pq_exp)
         annot_matrix = pq # Note that in the dominance case, we multiply by (pq)^2.
+    else:
+        annot_matrix = None
 
     df = pd.DataFrame.from_records(np.c_[geno_array.df])
     df.columns = geno_array.colnames
@@ -141,10 +143,10 @@ def get_ldscores(args, log):
     # Print LD Score summary.
     pd.set_option('display.max_rows', 200)
     log.log('\nSummary of LD Scores in {F}'.format(F=out_fname))
-    t = df.ix[:,4:].describe()
+    t = df.iloc[:,4:].describe()
     print(t)
     print(str(t))
-    log.log(str(t.ix[1:,:]))
+    log.log(str(t.iloc[1:,:]))
 
     # Print NaN instead of weird errors.
     np.seterr(divide='ignore', invalid='ignore')  
@@ -152,7 +154,7 @@ def get_ldscores(args, log):
     # Print correlation matrix including all LD Scores and sample MAF.
     log.log('')
     log.log('MAF/LD Score Correlation Matrix')
-    log.log(str(df.ix[:,4:].corr()))
+    log.log(str(df.iloc[:,4:].corr()))
 
     np.seterr(divide='raise', invalid='raise')
 
@@ -170,8 +172,6 @@ parser.add_argument('--additive', default=False, action='store_true',
     help='Generate additive LD scores.')
 parser.add_argument('--dominance', default=False, action='store_true',
     help='Generate dominance LD scores.')
-parser.add_argument('--gxe', default=False, action='store_true',
-    help='Generate gene x environment LD scores.')
 parser.add_argument('--maf', default=0, type=float,
     help='Minor allele frequency lower bound. Default is MAF > 0.')
 # Filtering / Data Management for LD Score

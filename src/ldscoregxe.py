@@ -96,9 +96,12 @@ class __GenotypeArrayInMemory__(object):
         l2 = lambda x: self.__l2_unbiased__(x, self.n)
         return self.__corSumVarBlocks__(block_left, c, l2, self.nextSNPs_add, annot)
 
-    def ldScoreVarBlocks_dom(self, block_left, c):
-        l2 = lambda x: self.__l2_unbiased__(x, self.n, annot=None)
-        return self.__corSumVarBlocks__(block_left, c, l2, self.nextSNPs_dom, annot**2)
+    def ldScoreVarBlocks_dom(self, block_left, c, annot=None):
+        l2 = lambda x: self.__l2_unbiased__(x, self.n)
+        if annot is not None:
+            return self.__corSumVarBlocks__(block_left, c, l2, self.nextSNPs_dom, np.power(annot,2))
+        else:
+            return self.__corSumVarBlocks__(block_left, c, l2, self.nextSNPs_dom, annot)
 
     # general methods for calculating sums of Pearson correlation coefficients
     def __corSumVarBlocks__(self, block_left, c, l2, snp_getter, annot=None):
@@ -165,10 +168,14 @@ class __GenotypeArrayInMemory__(object):
         md = int(c*np.floor(m/c))
         end = md + 1 if md != m else md
 
+        print_update = 1
         for l_B in range(b0, end, c):
-
             # Update the block
             old_b = b
+
+            if (l_B / 10000) > print_update:
+                print(f'site: {l_B}')
+                print_update += 1
 
             b = block_sizes[l_B]
             if l_B > b0 and b > 0:
@@ -195,15 +202,14 @@ class __GenotypeArrayInMemory__(object):
             np.dot(A.T, B / n, out=rfuncAB)
             rfuncAB = l2(rfuncAB)
             # cor_sum[l_A:l_A+b, :] += np.sum(rfuncAB, axis=1).reshape(b,1)
-            cor_sum[l_A:l_A+b, :] += np.sum(rfuncAB, annot[l_B:l_B+c, :])
+            cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
             # cor_sum[l_B:l_B+c, :] += np.sum(rfuncAB, axis=0).reshape(c,1)
-            cor_sum[l_B:l_B+c, :] += np.sum(annot[l_A:l_A+b, :].T, rfuncAB).T
+            cor_sum[l_B:l_B+c, :] += np.dot(annot[l_A:l_A+b, :].T, rfuncAB).T
             np.dot(B.T, B / n, out=rfuncBB)
             rfuncBB = l2(rfuncBB)
             # cor_sum[l_B:l_B+c, :] += np.sum(rfuncBB, axis=0).reshape(c,1)
             cor_sum[l_B:l_B+c, :] += np.dot(rfuncBB, annot[l_B:l_B+c, :])
 
-        print(cor_sum)
         return cor_sum
 
 class PlinkBEDFile(__GenotypeArrayInMemory__):
@@ -353,8 +359,6 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
         if args.h2_AC > 0:
             if args.gxe_non_independent:
                 beta_AC = np.sqrt(args.h2_AC / args.h2_A) * beta_A
-                print(beta_A[0:10])
-                print(beta_AC[0:10])
             else:
                 beta_AC = self.__causal_SNPs__(args.beta_prop_AC, args.h2_AC)
         else:

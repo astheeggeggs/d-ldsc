@@ -91,9 +91,9 @@ def get_ldscores(args, log):
         msg += 'not directly comparable to normal LD Scores.'
         log.log(msg)
         scale_suffix = '_S{S}'.format(S=args.pq_exp)
-        pq = np.matrix(geno_array.maf*(1-geno_array.maf)).reshape((geno_array.m, 1))
+        pq = np.matrix(2 * geno_array.maf * (1-geno_array.maf)).reshape((geno_array.m, 1))
         pq = np.power(pq, args.pq_exp)
-        annot_matrix = pq # Note that in the dominance case, we multiply by (pq)^2.
+        annot_matrix = pq # Note that in the dominance case, we multiply by (2pq)^2.
     else:
         annot_matrix = None
 
@@ -124,11 +124,20 @@ def get_ldscores(args, log):
     M_5_50 = []
 
     if args.additive:
-        M += [geno_array.m]
-        M_5_50 += [np.sum(geno_array.maf > 0.05)]
-    if args.dominance:
-        M += [geno_array.m]
-        M_5_50 += [np.sum(geno_array.maf > 0.05)]
+        if args.pq_exp is not None:
+            M += [np.sum(pq)]
+            M_5_50 += [np.sum((geno_array.maf > 0.05) * pq)]
+        else:
+            M += [geno_array.m]
+            M_5_50 += [np.sum(geno_array.maf > 0.05)]
+
+    if args.dominance: # DEV: need to sort these.
+        if args.pq_exp is not None:
+            M += [np.sum(np.power(pq, 2))]
+            M_5_50 += [np.sum((geno_array.maf > 0.05) * np.power(pq, 2))]
+        else:
+            M += [geno_array.m]
+            M_5_50 += [np.sum(geno_array.maf > 0.05)]
 
     # print .M
     fout_M = open(args.out +'.M','w')

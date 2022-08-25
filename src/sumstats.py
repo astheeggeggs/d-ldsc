@@ -103,10 +103,19 @@ def _read_w_ld(args, log):
                                  'regression weight LD Score', ps.ldscore_fromlist)
     col_names = ['SNP']
     
+    cols_to_drop = []
     if not (args.additive or args.additive_orig):
-        w_ld = w_ld.drop(['L2_A_0'], axis=1)
+        for col in w_ld.columns:
+            if col.find('_A_') != -1:
+                cols_to_drop += [col]
+        w_ld = w_ld.drop(cols_to_drop, axis=1)
+
+    cols_to_drop = []
     if not args.dominance:
-        w_ld = w_ld.drop(['L2_D_0'], axis=1)
+        for col in w_ld.columns:
+            if col.find('_D_') != -1:
+                cols_to_drop += [col]
+        w_ld = w_ld.drop(cols_to_drop, axis=1)
 
     for i in range(len(w_ld.columns)):
         if w_ld.columns[i].find('L2_') != -1:
@@ -389,7 +398,7 @@ def estimate_h2(args, log):
         if args.gxe:
             h2.extend(hsqhat_AC.to_print_to_file(c))
 
-        print(h2)
+        # print(h2)
         # Output columns order.
         # [ 
         # 'phenotype',

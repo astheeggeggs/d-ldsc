@@ -1,5 +1,5 @@
 # d-ldsc
-Dominance extension to the population LD-score regression framework.
+Dominance extension to the LD-score regression framework.
 
 `d-ldsc` is a command line tool to determine the non-additive contribution of site specific effects to heritability of a trait. This code started as a fork of the `ldsc` [codebase](https://github.com/bulik/ldsc), but has subsequently diverged. However, much of their excellent tutorials and gotchas still apply, so be sure to check out the orginal `ldsc` [wiki](https://github.com/bulik/ldsc/wiki). `d-ldsc` builds on first LD-score regression paper, see the citation below. Also, much of this README is based on the original `ldsc` README.
 
